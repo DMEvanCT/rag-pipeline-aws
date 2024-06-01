@@ -6,7 +6,7 @@
             "Type": "Task",
             "Resource": "${FileExtensionFunctionArn}",
             "Next": "Extension Choice",
-            "OutputPath": "$.extension_finder",
+            "ResultPath": "$.extension_finder",
             "Retry": [
                 {
                   "ErrorEquals": [
@@ -31,17 +31,17 @@
             "Type": "Choice",
             "Choices": [
                 {
-                    "Variable": "$.extension",
+                    "Variable": "$.extension_finder.extension",
                     "StringEquals": "pdf",
                     "Next": "PDF to Text"
                 },
                 {
-                    "Variable": "$.extension",
+                    "Variable": "$.extension_finder.extension",
                     "StringEquals": "docx",
                     "Next": "DOCX to Text"
                 },
                 {
-                    "Variable": "$.extension",
+                    "Variable": "$.extension_finder.extension",
                     "StringEquals": "html",
                     "Next": "HTML to Text"
                 }
@@ -61,6 +61,7 @@
             "Type": "Task",
             "Resource": "${PDFLoaderFunctionArn}",
             "Next": "Pinecone Index",
+            "ResultPath": "$.loader",
             "Retry": [
                 {
                   "ErrorEquals": [
@@ -85,6 +86,7 @@
             "Type": "Task",
             "Resource": "${DocXLoaderFunctionArn}",
             "Next": "Pinecone Index",
+            "ResultPath": "$.loader",
             "Retry": [
                 {
                   "ErrorEquals": [
@@ -109,6 +111,7 @@
             "Type": "Task",
             "Resource": "${HTMLLoaderFunctionArn}",
             "Next": "Pinecone Index",
+            "ResultPath": "$.loader",
             "Retry": [
                 {
                   "ErrorEquals": [
@@ -150,9 +153,8 @@
                   ],
                   "Next": "Unsupported Extension"
                 }
-              ]
+              ],
             "End": true
-        },
-
+        }
     }
 }

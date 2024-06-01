@@ -186,6 +186,10 @@ Resources:
                   - !GetAtt HTMLLoaderFunction.Arn
                   - !GetAtt DocXLoaderFunction.Arn
                   - !GetAtt PineConeEmbeddingFunction.Arn
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref SNSFailureTopic
   LoadersRole:
     Type: AWS::IAM::Role
     Properties:
@@ -204,7 +208,9 @@ Resources:
               - Effect: Allow
                 Action:
                   - s3:GetObject
-                Resource: !GetAtt DocumentsBucket.Arn
+                Resource:  
+                  - !GetAtt DocumentsBucket.Arn
+                  - !Sub ${DocumentsBucket.Arn}/*
               - Effect: Allow
                 Action:
                   - cloudwatch:CreateLogStream

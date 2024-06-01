@@ -15,7 +15,7 @@ codeuri = "/Users/evanhaston/OpenSource/RagPipeline/functions/pdf_loader_functio
 runtime = "python3.12"
 architecture = "x86_64"
 handler = "app.lambda_handler"
-manifest_hash = ""
+manifest_hash = "8adefb71936950c0615bf58d7a340774"
 packagetype = "Zip"
 functions = ["PDFLoaderFunction"]
 
