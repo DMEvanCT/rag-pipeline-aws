@@ -1,0 +1,193 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  RagPipeline
+
+  Embeddings Pipeline for RAG implementation
+
+
+
+Globals:
+  Function:
+    Timeout: 90
+    MemorySize: 512
+    Runtime: python3.12
+    Architectures:
+      - x86_64
+    LoggingConfig:
+      LogFormat: JSON
+  
+
+
+
+Resources:
+  EmbeddingsPipelineStateMachine:
+    Type: AWS::Serverless::StateMachine # More info about State Machine Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-statemachine.html
+    Properties:
+      DefinitionUri: statemachine/embeddings_pipeline_state_machine.asl.json
+      Role: !GetAtt EmbeddingsStateMachineRole.Arn
+      DefinitionSubstitutions:
+        FileExtensionFunctionArn: !GetAtt FileExtensionFunction.Arn
+        PDFLoaderFunctionArn: !GetAtt PDFLoaderFunction.Arn
+        HTMLLoaderFunctionArn: !GetAtt HTMLLoaderFunction.Arn
+        DocXLoaderFunctionArn: !GetAtt DocXLoaderFunction.Arn
+        PineConeEmbeddingFunctionArn: !GetAtt PineConeEmbeddingFunction.Arn
+        SNSFailureTopicArn: !Ref SNSFailureTopic
+
+  FileExtensionFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html
+    Properties:
+      CodeUri: functions/file_extension_function/
+      Handler: app.lambda_handler
+      Architectures:
+        - arm64
+
+  PDFLoaderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/pdf_loader_function/
+      Handler: app.lambda_handler
+      Role: !GetAtt LoadersRole.Arn
+
+
+  HTMLLoaderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/html_loader_function/
+      Handler: app.lambda_handler
+      Role: !GetAtt LoadersRole.Arn
+
+
+  DocXLoaderFunction:
+    Type: AWS::Serverless::Function 
+      CodeUri: functions/docx_loader_function/
+      Handler: app.lambda_handler
+      Role: !GetAtt LoadersRole.Arn
+
+
+  PineConeEmbeddingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/pinecone_embedding_function/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+
+
+  DocumentsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: rag-pipeline-documents-cloudkingnx
+      AccessControl: Private
+      VersioningConfiguration:
+        Status: Enabled
+      NotificationConfiguration:
+        EventBridgeConfiguration:
+          EventBridgeEnabled: true
+
+# Create an event bridge rule to send events to the state machine when an object is created in the S3 bucket
+  DocumentsBucketEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventPattern:
+        source:
+          - aws.s3
+        detail-type:
+          - Object Created
+        detail:
+          bucket:
+            name:
+              - !Ref DocumentsBucket
+      Targets:
+        - Arn: !GetAtt EmbeddingsPipelineStateMachine.Arn
+          Id: StartStateMachine
+          RoleArn: !GetAtt EventBridgeRolePipeline.Arn
+
+  # Create a role to allow evennts to trigger the state machine
+  EventBridgeRolePipeline:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: EventBridgePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - states:StartExecution
+                Resource: !GetAtt EmbeddingsPipelineStateMachine.Arn
+
+  EmbeddingsStateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaInvokePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource: 
+                  - !GetAtt FileExtensionFunction.Arn
+                  - !GetAtt PDFLoaderFunction.Arn
+                  - !GetAtt HTMLLoaderFunction.Arn
+                  - !GetAtt DocXLoaderFunction.Arn
+                  - !GetAtt PineConeEmbeddingFunction.Arn
+  LoadersRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: S3Policy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource: !GetAtt DocumentsBucket.Arn
+  
+  SNSFailureTopic:
+    Type: AWS::SNS::Topic
+
+  SNSSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      TopicArn: !Ref SNSFailureTopic
+      Endpoint: ehaston@darkmatterit.io
+            
+
+Outputs:
+  EmbeddingsPipelineStateMachineArn:
+    Description: Embeddings Pipeline State machine ARN
+    Value: !Ref EmbeddingsPipelineStateMachine
+  EmbedingsStateMachineRoleArn:
+    Description: Embeddings State Machine Role ARN
+    Value: !GetAtt EmbeddingsStateMachineRole.Arn
+  DocumentsBucketArn:
+    Description: Documents Bucket ARN
+    Value: !GetAtt DocumentsBucket.Arn
+  DocumentsBucketName:
+    Description: Documents Bucket Name
+    Value: !Ref DocumentsBucket 

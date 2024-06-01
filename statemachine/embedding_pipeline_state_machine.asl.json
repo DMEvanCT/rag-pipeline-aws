@@ -1,0 +1,58 @@
+{
+    "Comment": "A state machine to convert documents from S3 into Vectors and store them into Pinecone",
+    "StartAt": "Extension Checker",
+    "States": {
+        "Extension Checker": {
+            "Type": "Task",
+            "Resource": "${ExtensionCheckerLambdaArn}",
+            "Next": "Extension Choice"
+        },
+        "Extension Choice": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "Variable": "$.extension",
+                    "StringEquals": "pdf",
+                    "Next": "PDF to Text"
+                },
+                {
+                    "Variable": "$.extension",
+                    "StringEquals": "docx",
+                    "Next": "DOCX to Text"
+                },
+                {
+                    "Variable": "$.extension",
+                    "StringEquals": "html",
+                    "Next": "HTML to Text"
+                }
+            ],
+            "Default": "Unsupported Extension"
+        },
+        "SNSFailureNotification": {
+            "Type": "Task",
+            "Resource": "${SNSFailureNotificationLambdaArn}",
+            "End": true
+        },
+        "PDF to Text": {
+            "Type": "Task",
+            "Resource": "${PDFToTextLambdaArn}",
+            "Next": "Text to Vector"
+        },
+        "DOCX to Text": {
+            "Type": "Task",
+            "Resource": "${DOCXToTextLambdaArn}",
+            "Next": "Text to Vector"
+        },
+        "HTML to Text": {
+            "Type": "Task",
+            "Resource": "${HTMLToTextLambdaArn}",
+            "Next": "Text to Vector"
+        },
+        "Pinecone Index": {
+            "Type": "Task",
+            "Resource": "${PineconeIndexLambdaArn}",
+            "End": true
+        },
+
+    }
+}
