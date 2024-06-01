@@ -2,4 +2,8 @@
 
 
 def lambda_handler(event, context):
-    pass
+    docx_docs = []
+
+    return {
+      "chunks": docx_docs
+    }

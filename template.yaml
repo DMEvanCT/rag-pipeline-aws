@@ -18,13 +18,11 @@ Globals:
       LogFormat: JSON
   
 
-
-
 Resources:
   EmbeddingsPipelineStateMachine:
     Type: AWS::Serverless::StateMachine # More info about State Machine Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-statemachine.html
     Properties:
-      DefinitionUri: statemachine/embeddings_pipeline_state_machine.asl.json
+      DefinitionUri: statemachine/embedding_pipeline_state_machine.asl.json
       Role: !GetAtt EmbeddingsStateMachineRole.Arn
       DefinitionSubstitutions:
         FileExtensionFunctionArn: !GetAtt FileExtensionFunction.Arn
@@ -39,8 +37,15 @@ Resources:
     Properties:
       CodeUri: functions/file_extension_function/
       Handler: app.lambda_handler
-      Architectures:
-        - arm64
+      Role: !GetAtt LoadersRole.Arn
+      LoggingConfig:
+        LogGroup: !Ref FileExtensionHandlerLogGroup
+
+  FileExtensionHandlerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/FileExtensionFunction"
+      RetentionInDays: 7
 
   PDFLoaderFunction:
     Type: AWS::Serverless::Function
@@ -48,6 +53,15 @@ Resources:
       CodeUri: functions/pdf_loader_function/
       Handler: app.lambda_handler
       Role: !GetAtt LoadersRole.Arn
+      LoggingConfig:
+        LogGroup: !Ref PDFLoaderFunctionLogGroup
+
+
+  PDFLoaderFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/PDFLoaderFunction"
+      RetentionInDays: 7
 
 
   HTMLLoaderFunction:
@@ -56,14 +70,30 @@ Resources:
       CodeUri: functions/html_loader_function/
       Handler: app.lambda_handler
       Role: !GetAtt LoadersRole.Arn
+      LoggingConfig:
+        LogGroup: !Ref HTMLLoaderFunctionLogGroup
 
+
+  HTMLLoaderFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/HTMLLoaderFunction"
+      RetentionInDays: 7
 
   DocXLoaderFunction:
     Type: AWS::Serverless::Function 
+    Properties:
       CodeUri: functions/docx_loader_function/
       Handler: app.lambda_handler
       Role: !GetAtt LoadersRole.Arn
+      LoggingConfig:
+        LogGroup: !Ref DocXLoaderFunctionLogGroup
 
+  DocXLoaderFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/DocXLoaderFunction"
+      RetentionInDays: 7
 
   PineConeEmbeddingFunction:
     Type: AWS::Serverless::Function
@@ -71,6 +101,15 @@ Resources:
       CodeUri: functions/pinecone_embedding_function/
       Handler: app.lambda_handler
       Runtime: python3.12
+      Role: !GetAtt LoadersRole.Arn
+      LoggingConfig:
+        LogGroup: !Ref PineConeEmbeddingFunctionLogGroup
+  
+  PineConeEmbeddingFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/PineConeEmbeddingFunction"
+      RetentionInDays: 7
 
 
   DocumentsBucket:
@@ -166,6 +205,10 @@ Resources:
                 Action:
                   - s3:GetObject
                 Resource: !GetAtt DocumentsBucket.Arn
+              - Effect: Allow
+                Action:
+                  - cloudwatch:CreateLogStream
+                Resource: "*"
   
   SNSFailureTopic:
     Type: AWS::SNS::Topic
@@ -176,7 +219,13 @@ Resources:
       Protocol: email
       TopicArn: !Ref SNSFailureTopic
       Endpoint: ehaston@darkmatterit.io
-            
+  
+  SNSSubscription2:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      TopicArn: !Ref SNSFailureTopic
+      Endpoint: "emhaston@comcast.net"
 
 Outputs:
   EmbeddingsPipelineStateMachineArn:

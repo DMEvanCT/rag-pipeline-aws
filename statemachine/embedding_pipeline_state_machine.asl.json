@@ -4,8 +4,28 @@
     "States": {
         "Extension Checker": {
             "Type": "Task",
-            "Resource": "${ExtensionCheckerLambdaArn}",
-            "Next": "Extension Choice"
+            "Resource": "${FileExtensionFunctionArn}",
+            "Next": "Extension Choice",
+            "OutputPath": "$.extension_finder",
+            "Retry": [
+                {
+                  "ErrorEquals": [
+                    "States.ALL"
+                  ],
+                  "BackoffRate": 2,
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "Comment": "Retry"
+                }
+              ],
+              "Catch": [
+                {
+                  "ErrorEquals": [
+                    "States.ALL"
+                  ],
+                  "Next": "Unsupported Extension"
+                }
+              ]
         },
         "Extension Choice": {
             "Type": "Choice",
@@ -28,29 +48,109 @@
             ],
             "Default": "Unsupported Extension"
         },
-        "SNSFailureNotification": {
+        "Unsupported Extension": {
             "Type": "Task",
-            "Resource": "${SNSFailureNotificationLambdaArn}",
+            "Resource": "arn:aws:states:::sns:publish",
+            "Parameters": {
+              "Message.$": "$",
+              "TopicArn": "${SNSFailureTopicArn}"
+            },
             "End": true
         },
         "PDF to Text": {
             "Type": "Task",
-            "Resource": "${PDFToTextLambdaArn}",
-            "Next": "Text to Vector"
+            "Resource": "${PDFLoaderFunctionArn}",
+            "Next": "Pinecone Index",
+            "Retry": [
+                {
+                  "ErrorEquals": [
+                    "States.ALL"
+                  ],
+                  "BackoffRate": 2,
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "Comment": "Retry"
+                }
+              ],
+              "Catch": [
+                {
+                  "ErrorEquals": [
+                    "States.ALL"
+                  ],
+                  "Next": "Unsupported Extension"
+                }
+              ]
         },
         "DOCX to Text": {
             "Type": "Task",
-            "Resource": "${DOCXToTextLambdaArn}",
-            "Next": "Text to Vector"
+            "Resource": "${DocXLoaderFunctionArn}",
+            "Next": "Pinecone Index",
+            "Retry": [
+                {
+                  "ErrorEquals": [
+                    "States.ALL"
+                  ],
+                  "BackoffRate": 2,
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "Comment": "Retry"
+                }
+              ],
+              "Catch": [
+                {
+                  "ErrorEquals": [
+                    "States.ALL"
+                  ],
+                  "Next": "Unsupported Extension"
+                }
+              ]
         },
         "HTML to Text": {
             "Type": "Task",
-            "Resource": "${HTMLToTextLambdaArn}",
-            "Next": "Text to Vector"
+            "Resource": "${HTMLLoaderFunctionArn}",
+            "Next": "Pinecone Index",
+            "Retry": [
+                {
+                  "ErrorEquals": [
+                    "States.ALL"
+                  ],
+                  "BackoffRate": 2,
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "Comment": "Retry"
+                }
+              ],
+              "Catch": [
+                {
+                  "ErrorEquals": [
+                    "States.ALL"
+                  ],
+                  "Next": "Unsupported Extension"
+                }
+              ]
         },
         "Pinecone Index": {
             "Type": "Task",
-            "Resource": "${PineconeIndexLambdaArn}",
+            "Resource": "${PineConeEmbeddingFunctionArn}",
+            "Retry": [
+                {
+                  "ErrorEquals": [
+                    "States.ALL"
+                  ],
+                  "BackoffRate": 2,
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "Comment": "Retry"
+                }
+              ],
+              "Catch": [
+                {
+                  "ErrorEquals": [
+                    "States.ALL"
+                  ],
+                  "Next": "Unsupported Extension"
+                }
+              ]
             "End": true
         },
 
