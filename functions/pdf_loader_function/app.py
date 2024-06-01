@@ -27,13 +27,7 @@ def lambda_handler(event, context):
             loader = PyPDFLoader(_file)
             # Load the html
             data = loader.load_and_split()
-            # Create the splitter
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-            # Split the data into chunks
-            for page in data:
-                chunks = text_splitter.split_documents(page)
-                # Add the chunks the the list of html_docs
-                pdf_docs.extend(chunks)
+            pdf_docs.extend(data)
 
     return {
       "chunks": pdf_docs
