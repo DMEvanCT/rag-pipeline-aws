@@ -16,6 +16,8 @@ Globals:
       - x86_64
     LoggingConfig:
       LogFormat: JSON
+    Layers:
+      - !Sub arn:aws:lambda:${AWS::Region}:017000801446:layer:AWSLambdaPowertoolsPythonV2:71
   
 
 Resources:
@@ -55,6 +57,10 @@ Resources:
       Role: !GetAtt LoadersRole.Arn
       LoggingConfig:
         LogGroup: !Ref PDFLoaderFunctionLogGroup
+    Environment:
+      Variables:
+        POWERTOOLS_SERVICE_NAME: pdfloader
+        POWERTOOLS_LOG_LEVEL: INFO
 
 
   PDFLoaderFunctionLogGroup:
@@ -213,8 +219,17 @@ Resources:
                   - !Sub ${DocumentsBucket.Arn}/*
               - Effect: Allow
                 Action:
-                  - cloudwatch:CreateLogStream
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                  - "logs:DescribeLogStreams"
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - "ssm:GetParameter"
+                Resource: 
+                  - "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/openai/*"
+                  - "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/pinecone/*"
+
   
   SNSFailureTopic:
     Type: AWS::SNS::Topic

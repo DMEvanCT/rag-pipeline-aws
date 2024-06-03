@@ -42,7 +42,7 @@ codeuri = "/Users/evanhaston/OpenSource/RagPipeline/functions/pinecone_embedding
 runtime = "python3.12"
 architecture = "x86_64"
 handler = "app.lambda_handler"
-manifest_hash = ""
+manifest_hash = "c4fe397bb154410efd3738e8a57f6d97"
 packagetype = "Zip"
 functions = ["PineConeEmbeddingFunction"]
 
