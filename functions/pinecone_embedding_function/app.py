@@ -27,6 +27,7 @@ def lambda_handler(event, context):
     model="text-embedding-3-large",
     deployment="text-embedding-3-large",
     max_retries=0
+    )
 
     texts = [chunk["text"] for chunk in chunks_and_metadata]
     metadata = [chunk["metadata"] for chunk in chunks_and_metadata]
