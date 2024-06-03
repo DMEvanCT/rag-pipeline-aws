@@ -227,8 +227,8 @@ Resources:
                 Action:
                   - "ssm:GetParameter"
                 Resource: 
-                  - "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/openai/*"
-                  - "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/pinecone/*"
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/openai/*"
+                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/pinecone/*"
 
   
   SNSFailureTopic:
